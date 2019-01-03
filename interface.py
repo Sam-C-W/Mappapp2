@@ -34,7 +34,15 @@ class MapView(KvyImage):
         super(MapView, self).__init__(**kwargs)
 
     def cursor_square(self, touch, start):
-        res = self.backend.layerlist.get_grid_res()
+        if start == 'left':
+            start = left_touch_start
+        if start == 'right':
+            start = right_touch_start
+        try:
+            print(f"right {right_touch_start} left: {left_touch_start}, target{start}")
+        except :
+            pass
+        res = self.backend.layerlist.get_grid_res()*self.backend.zoom_mod
         touch1 = self.backend.coord_convert_map(start)
         touch2 = self.backend.coord_convert_map(touch.pos)
         starting_point = min(touch1[0], touch2[0]), min(touch1[1], touch2[1])
@@ -53,6 +61,8 @@ class MapView(KvyImage):
         """
         if self.collide_point(*touch.pos):
             if touch.button == 'left':
+                global left_touch_start
+                left_touch_start = touch.pos
                 if not self.backend.check_active_layer_type():
                     pos = tuple(val * (1 / self.backend.zoom_mod) for val in touch.pos)
                     touchx = pos[0]
@@ -72,8 +82,6 @@ class MapView(KvyImage):
                     target = self.backend.array_draw(touch.pos)
                     self.parent.parent.redraw_map(target=target)
                     return
-                global left_touch_start
-                left_touch_start = touch.pos
                 if not self.backend.square_toggle:
                     self.backend.update_target_tile(touch.pos)
                     self.texture = self.parent.parent.get_texture \
@@ -103,10 +111,10 @@ class MapView(KvyImage):
                 self.texture = self.parent.parent.get_texture \
                     (self.backend.draw_map({self.backend.coord_convert_map(touch.pos)}))
             elif touch.button == 'left' and self.backend.square_toggle:
-                self.cursor_square(touch, left_touch_start)
+                self.cursor_square(touch, 'left')
             elif touch.button == 'right':
                 self.children[0].background_color = [0.9, 0.9, 0, 0.5]
-                self.cursor_square(touch, right_touch_start)
+                self.cursor_square(touch, 'right')
 
     def on_touch_up(self, touch):
         """
@@ -343,10 +351,10 @@ class MainScreen(GridLayout):
             tool_btn.bind(on_press=tool_logic)
             tool_buttons.append(tool_btn)
 
-        for i in range(0,6,2):
-            button_shell = GridLayout(cols=2,spacing = 5)
+        for i in range(0, 6, 2):
+            button_shell = GridLayout(cols=2, spacing=5)
             button_shell.add_widget(tool_buttons[i])
-            button_shell.add_widget(tool_buttons[i+1])
+            button_shell.add_widget(tool_buttons[i + 1])
             map_control.add_widget(button_shell)
         self.add_widget(map_control)
 
@@ -375,6 +383,7 @@ class MainScreen(GridLayout):
         map_image.size = map_image.texture.size
 
         cursor_size = (self.backend.layerlist.get_grid_res(), self.backend.layerlist.get_grid_res())
+        cursor_size = tuple(val*self.backend.zoom_mod for val in cursor_size)
         map_cursor = Button(text="", size=cursor_size)
         tile_cursor = Button(text="", size=cursor_size)
 
@@ -383,19 +392,22 @@ class MainScreen(GridLayout):
         tileset.add_widget(tile_cursor)
 
         def cursor_polling(instance, pos):
+
             res = self.backend.layerlist.get_grid_res()
             if map_scroller.collide_point(*pos):
+                res = self.backend.layerlist.get_grid_res() * self.backend.zoom_mod
                 pos = map_scroller.to_local(*pos)
                 if map_image.collide_point(*pos):
                     tile_cursor.background_color = [0, 0, 0, 0]
                     map_cursor.background_color = [0, 0, 1, 0.3]
-                    map_cursor.size = self.backend.active_tile_image.size
+                    map_cursor.size = tuple(val*self.backend.zoom_mod for val in self.backend.active_tile_image.size)
                     if self.backend.check_active_layer_type():
+
                         pos = (pos[0] // res) * res, (pos[1] // res) * res - (
-                                self.backend.active_tile_image.size[1] - res)
+                                map_cursor.size[1] - res)
                     else:
-                        pos = pos[0] - self.backend.active_tile_image.size[0] / 2, pos[1] - \
-                              self.backend.active_tile_image.size[1] / 2
+                        pos = pos[0] - map_cursor.size[1] / 2, pos[1] - \
+                             map_cursor.size[1] / 2
                     map_cursor.pos = pos
                 else:
                     map_cursor.background_color = [0, 0, 0, 0]
@@ -761,6 +773,7 @@ class MainScreen(GridLayout):
         Simple method that redraws the tileset and displays it on the gui
         :return:
         """
+        self.children[len(self.children) - 1].children[2].children[1].text = self.backend.active_tile_set_file.split('/')[-1]
         self.children[2].children[0].texture = self.get_texture(self.backend.active_tile_set)
         self.children[2].children[0].size = self.children[2].children[0].texture.size
 

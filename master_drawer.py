@@ -51,7 +51,7 @@ class MasterDrawer:
         gridres = self.layers.get_grid_res()
         grid_width = self.layers.get_size()[0]
         grid_height = self.layers.get_size()[1]
-        grid = Image.new('RGBA', (grid_width * gridres, grid_height * gridres), (255, 0, 0, 0))
+        grid = Image.new('RGBA', (grid_width * gridres, grid_height * gridres), (0, 0, 0, 0))
         artist = ImageDraw.Draw(grid)
 
         for i in range(grid_width):
