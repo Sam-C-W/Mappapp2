@@ -7,7 +7,7 @@ class LayerStack:
     def __init__(self, grid_res):
         self.stack = []
         self.grid_resolution = grid_res
-        self.stack.append(Layer("img_store/tilesets/0layertiles.png"))
+        self.stack.append(Layer("img_store/tilesets/0layertiles.png", resolution=grid_res))
 
     def new_layer(self, tileset, position=None):
         """

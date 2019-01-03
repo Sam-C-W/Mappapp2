@@ -34,6 +34,7 @@ class Backend:
         self.undo_tracker = 0
 
     def create_drawspace(self, width, height, res=32, ):
+        res = int(self.active_tile_set_file.split('/')[-1][0:2])
         self.layerlist = LayerStack(res)
         self.layerlist.new_layer(self.active_tile_set_file)
         self.active_layer = 1
@@ -261,7 +262,6 @@ class Backend:
         target = copy.deepcopy(self.layerlist)
         return target
 
-
     def load_from_undo(self, source):
         loaded_layer_stack = copy.deepcopy(source)
         self.layerlist = loaded_layer_stack
@@ -296,6 +296,12 @@ class Backend:
         self.active_layer += 1
 
     def coord_convert_map(self, touch):
+        if self.layerlist.get_size()[1] - touch[1] < 1:
+            touch = touch[0], touch[1] - 1
+        if self.layerlist.get_size()[0] - touch[0] < 1:
+            touch = touch[0] - 1, touch[1]
+        if touch[1] == 0: touch = touch[0], 1
+        if touch[0] == 0: touch = 1, touch[1]
         res = self.layerlist.get_grid_res()
         touch = tuple(val * (1 / self.zoom_mod) for val in touch)
         touchx = touch[0]

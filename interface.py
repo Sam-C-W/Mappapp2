@@ -438,6 +438,10 @@ class MainScreen(GridLayout):
                         self.backend.active_layer += 1
                     else:
                         self.backend.active_layer = 1
+                self.backend.active_tile_set_file = self.backend.layerlist.get_layer(self.backend.active_layer).tileset
+                self.backend.update_active_tileset()
+                self.redraw_active_tile()
+                self.redraw_tileset()
             elif instance.text == "Up":
                 if self.backend.active_layer > 1:
                     self.backend.layerlist.move_up(self.backend.active_layer)
@@ -801,12 +805,20 @@ class MainScreen(GridLayout):
         if self.backend.undo():
             self.children[1].children[0].texture = self.get_texture(self.backend.draw_map(not_undoing=False))
             self.children[1].children[0].size = self.children[1].children[0].texture.size
+            self.backend.active_tile_set_file = self.backend.layerlist.get_layer(self.backend.active_layer).tileset
+            self.backend.update_active_tileset()
+            self.redraw_active_tile()
+            self.redraw_tileset()
             self.populate_layer_list(self.children[0].children[0])
 
     def run_redo(self):
         if self.backend.redo():
             self.children[1].children[0].texture = self.get_texture(self.backend.draw_map(not_undoing=False))
             self.children[1].children[0].size = self.children[1].children[0].texture.size
+            self.backend.active_tile_set_file = self.backend.layerlist.get_layer(self.backend.active_layer).tileset
+            self.backend.update_active_tileset()
+            self.redraw_active_tile()
+            self.redraw_tileset()
             self.populate_layer_list(self.children[0].children[0])
 
     def initialize_keyboard(self):
