@@ -1,12 +1,12 @@
 from PIL import Image
 import numpy
 from layer import Layer
-from kivy.uix.widget import Widget
+from kivy.core.text import Label as CoreLabel
 from kivy.uix.popup import Popup
 from backend import Backend
 from kivy.app import App
 from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.scrollview import ScrollView
+from kivy.uix.scrollview import ScrollView as KvyScroll
 from kivy.uix.image import Image as KvyImage
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -17,11 +17,19 @@ from kivy.uix.button import Button
 from kivy.core.window import Window
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
+from datetime import datetime
 from kivy.graphics import Color, Rectangle
-from math import ceil
 import os
 
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+
+
+class ScrollView(KvyScroll):
+    def __init__(self, **kwargs):
+        super(ScrollView, self).__init__(**kwargs)
+
+    def _update_effect_bounds(self, *args):
+        pass
 
 
 class MapView(KvyImage):
@@ -38,11 +46,7 @@ class MapView(KvyImage):
             start = left_touch_start
         if start == 'right':
             start = right_touch_start
-        try:
-            print(f"right {right_touch_start} left: {left_touch_start}, target{start}")
-        except :
-            pass
-        res = self.backend.layerlist.get_grid_res()*self.backend.zoom_mod
+        res = self.backend.layerlist.get_grid_res() * self.backend.zoom_mod
         touch1 = self.backend.coord_convert_map(start)
         touch2 = self.backend.coord_convert_map(touch.pos)
         starting_point = min(touch1[0], touch2[0]), min(touch1[1], touch2[1])
@@ -78,14 +82,14 @@ class MapView(KvyImage):
                     self.backend.fill_tool(touch.pos)
                     self.parent.parent.redraw_map()
                     return
-                if self.backend.active_tile_array:
+                if self.backend.active_tile_array and not self.backend.square_toggle:
                     target = self.backend.array_draw(touch.pos)
                     self.parent.parent.redraw_map(target=target)
                     return
                 if not self.backend.square_toggle:
                     self.backend.update_target_tile(touch.pos)
-                    self.texture = self.parent.parent.get_texture \
-                        (self.backend.draw_map({self.backend.coord_convert_map(touch.pos)}))
+                    self.texture = self.parent.parent.get_texture(
+                        self.backend.draw_map({self.backend.coord_convert_map(touch.pos)}))
             elif touch.button == 'right' and self.backend.check_active_layer_type():
                 self.backend.active_tile = self.backend.layerlist.get_layer(self.backend.active_layer).grid[
                     self.backend.coord_convert_map(touch.pos)]
@@ -129,7 +133,6 @@ class MapView(KvyImage):
             if touch.button == 'left' and self.backend.square_toggle:
                 target = self.backend.square_fill(left_touch_start, touch.pos)
                 self.parent.parent.redraw_map(target=target)
-                print(f"ending pos {touch.pos} start pos {left_touch_start}")
 
 
 class TilesetView(KvyImage):
@@ -208,15 +211,19 @@ class MainScreen(GridLayout):
         self.rows = 2
         self.padding = 20
         self.spacing = 10
+        Window.size = (980, 700)
         self.control_down = False
 
         def window_color_updater(instance, value):
             self.rect.pos = instance.pos
             self.rect.size = instance.size
+            self.rect2.pos = 20,instance.size[1]-self.rect2.texture.size[1]-10
 
         with self.canvas.before:
             Color(1, 1, 1, 0.2)
             self.rect = Rectangle(pos=self.pos, size=(200, 200))
+            lable_texture = self.map_title()
+            self.rect2 = Rectangle(size=lable_texture.size, texture=lable_texture)
             self.bind(size=window_color_updater, pos=window_color_updater)
 
         """------------B: This section of code creates the tileset control menue and active tile display------------"""
@@ -266,7 +273,7 @@ class MainScreen(GridLayout):
         tileset_menue.add_widget(active_tile_display)
         self.add_widget(tileset_menue)
 
-        """-----------------------C: This section of code creates the map space control buttons----------------------"""
+        """-------------C: This section of code creates the map space control buttons and drawing tools--------------"""
         map_control = GridLayout(cols=5, size=(100, 100), size_hint=(1, None), padding=20, spacing=5, rows=2)
 
         def alter_map(instance):
@@ -383,7 +390,7 @@ class MainScreen(GridLayout):
         map_image.size = map_image.texture.size
 
         cursor_size = (self.backend.layerlist.get_grid_res(), self.backend.layerlist.get_grid_res())
-        cursor_size = tuple(val*self.backend.zoom_mod for val in cursor_size)
+        cursor_size = tuple(val * self.backend.zoom_mod for val in cursor_size)
         map_cursor = Button(text="", size=cursor_size)
         tile_cursor = Button(text="", size=cursor_size)
 
@@ -400,14 +407,14 @@ class MainScreen(GridLayout):
                 if map_image.collide_point(*pos):
                     tile_cursor.background_color = [0, 0, 0, 0]
                     map_cursor.background_color = [0, 0, 1, 0.3]
-                    map_cursor.size = tuple(val*self.backend.zoom_mod for val in self.backend.active_tile_image.size)
+                    map_cursor.size = tuple(val * self.backend.zoom_mod for val in self.backend.active_tile_image.size)
                     if self.backend.check_active_layer_type():
 
                         pos = (pos[0] // res) * res, (pos[1] // res) * res - (
                                 map_cursor.size[1] - res)
                     else:
                         pos = pos[0] - map_cursor.size[1] / 2, pos[1] - \
-                             map_cursor.size[1] / 2
+                              map_cursor.size[1] / 2
                     map_cursor.pos = pos
                 else:
                     map_cursor.background_color = [0, 0, 0, 0]
@@ -590,6 +597,9 @@ class MainScreen(GridLayout):
                             file_browser_text.text.split("/")[-1] in [i.split("\\")[-1] for i in file_browser.files]:
                         def overwrite_resolve(instance):
                             self.backend.save_to_file(file_browser_text.text)
+                            self.backend.working_file = file_browser_text.text
+                            self.backend.last_save = datetime.now()
+                            self.update_map_title()
                             pop2.dismiss()
                             pop.dismiss()
                             self.initialize_keyboard()
@@ -600,6 +610,9 @@ class MainScreen(GridLayout):
                         pop2.open()
                     else:
                         self.backend.save_to_file(file_browser_text.text)
+                        self.backend.working_file = file_browser_text.text
+                        self.backend.last_save = datetime.now()
+                        self.update_map_title()
                         pop.dismiss()
                         self.initialize_keyboard()
                 elif title == "Load Map":
@@ -608,6 +621,9 @@ class MainScreen(GridLayout):
                     self.redraw_tileset()
                     self.redraw_active_tile()
                     self.populate_layer_list(self.children[0].children[0])
+                    self.backend.working_file = file_browser_text.text
+                    self.backend.last_save = datetime.now()
+                    self.update_map_title()
                     pop.dismiss()
                     self.initialize_keyboard()
                 elif title == "Export Map":
@@ -648,6 +664,7 @@ class MainScreen(GridLayout):
             self.initialize_keyboard()
 
         def update_file_text(instance, path):
+            nonlocal changed_dir
             changed_dir = True
             if title == "Save Map" or title == "Load Map":
                 file_browser_text.text = file_browser.path + "/Untitled.text"
@@ -720,12 +737,16 @@ class MainScreen(GridLayout):
                 self.backend.layerlist.resize((self.map_width, self.map_height))
                 self.redraw_map()
                 self.populate_layer_list(self.children[0].children[0])
+                self.backend.working_file = ""
+                self.backend.last_save = ""
+                self.update_map_title()
                 pop.dismiss()
                 self.initialize_keyboard()
             else:
                 self.backend.layerlist.resize((self.map_width, self.map_height))
                 self.redraw_map()
                 pop.dismiss()
+                Window.size = Window.size[0] - 1, Window.size[1] - 1
                 self.initialize_keyboard()
 
         def store_width(instance, value):
@@ -773,7 +794,8 @@ class MainScreen(GridLayout):
         Simple method that redraws the tileset and displays it on the gui
         :return:
         """
-        self.children[len(self.children) - 1].children[2].children[1].text = self.backend.active_tile_set_file.split('/')[-1]
+        self.children[len(self.children) - 1].children[2].children[1].text = \
+            self.backend.active_tile_set_file.split('/')[-1]
         self.children[2].children[0].texture = self.get_texture(self.backend.active_tile_set)
         self.children[2].children[0].size = self.children[2].children[0].texture.size
 
@@ -834,6 +856,41 @@ class MainScreen(GridLayout):
             self.redraw_tileset()
             self.populate_layer_list(self.children[0].children[0])
 
+    def map_title(self):
+        if self.backend.working_file:
+            # map_name = self.backend.working_file[0:-5]
+            # map_name_clean = ""
+            # for i in range(len(map_name) - 1, 0, -1):
+            #     char = map_name[i]
+            #     if char.isalnum():
+            #         map_name_clean += char
+            #     else:
+            #         break
+            # map_name_clean = map_name_clean[::-1]
+            map_name = self.backend.working_file.replace("\\","/")
+            map_name_clean = map_name.split("/")[-1][0:-5]
+            title_string = map_name_clean + ", Last Saved: " + self.backend.last_save.strftime(
+                "%Y-%m-%d %H:%M:%S")
+        else:
+            title_string = "Unsaved"
+        title_label = CoreLabel(text=title_string, font_size=20)
+        title_label.refresh()
+        return title_label.texture
+
+    def update_map_title(self):
+        text = self.map_title()
+        self.rect2.texture = text
+        self.rect2.size = text.size
+
+    def no_dialogue_save(self):
+        try:
+            self.backend.save_to_file(self.backend.working_file)
+            self.backend.last_save = datetime.now()
+            self.update_map_title()
+            print('Saved')
+        except:
+            print('failed to save')
+
     def initialize_keyboard(self):
 
         def _keyboard_closed():
@@ -854,7 +911,7 @@ class MainScreen(GridLayout):
             elif key == (121, 'y') and self.control_down:
                 self.target.run_redo()
             elif key == (115, 's') and self.control_down:
-                print("ctrls")
+                self.target.no_dialogue_save()
             return True
 
         self._keyboard = Window.request_keyboard(_keyboard_closed, self)

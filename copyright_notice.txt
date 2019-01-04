@@ -1,0 +1,8 @@
+Mappapp and all of my code is released for use under the MIT software license as stated
+in the LICENSE file pertaining to mappapp. I have used many amazing code libraries in 
+creating this program, all of which are under similar open source licenses but I still
+want to say that I am respecting their copyrights and respective licensing and ask that
+anyone using or looking at this application do the same. (see the relavent lisence files)
+
+My one ask and note is that the tileset images I have drawn for this project are NOT to
+be used for commercial purposes without explicit permission from me.

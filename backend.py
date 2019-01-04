@@ -22,7 +22,7 @@ class Backend:
         self.active_tile_array = {}
         self.active_tile = (0, 0)
         self.active_tile_image = None
-        self.active_tile_set_file = f"{self.working_dir}img_store/tilesets/32bforrest.png"
+        self.active_tile_set_file = f"{self.working_dir}img_store/tilesets/{self.get_default_tileset()}"
         self.create_drawspace(1, 1)
         self.update_active_tileset()
         self.image_cache = None
@@ -32,6 +32,14 @@ class Backend:
         self.zoom_mod = 1
         self.undo_array = []
         self.undo_tracker = 0
+        self.working_file = ""
+        self.last_save = ""
+
+    def get_default_tileset(self):
+        config = open(f"{self.working_dir}mappapp_config",'r')
+        for line in config:
+            if "Default Tileset:" in line:
+                return line.split(':')[1][0:-1]
 
     def create_drawspace(self, width, height, res=32, ):
         res = int(self.active_tile_set_file.split('/')[-1][0:2])
