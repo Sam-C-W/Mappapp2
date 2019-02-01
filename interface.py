@@ -1,3 +1,6 @@
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+Config.set('kivy','window_icon','img_store/icon.ico')
 from PIL import Image
 import numpy
 from layer import Layer
@@ -11,7 +14,6 @@ from kivy.uix.image import Image as KvyImage
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.texture import Texture
-from kivy.config import Config
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.core.window import Window
@@ -19,9 +21,10 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
 from datetime import datetime
 from kivy.graphics import Color, Rectangle
+
 import os
 
-Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+
 
 
 class ScrollView(KvyScroll):
@@ -217,7 +220,7 @@ class MainScreen(GridLayout):
         def window_color_updater(instance, value):
             self.rect.pos = instance.pos
             self.rect.size = instance.size
-            self.rect2.pos = 20,instance.size[1]-self.rect2.texture.size[1]-10
+            self.rect2.pos = 20, instance.size[1] - self.rect2.texture.size[1] - 10
 
         with self.canvas.before:
             Color(1, 1, 1, 0.2)
@@ -568,7 +571,7 @@ class MainScreen(GridLayout):
         :param title:
         :return:
         """
-        changed_dir = False
+        changed_dir = True #set this to false when testing in IDE
         file_browser = FileChooserIconView()
         file_browser_text = TextInput(text="File.txt", multiline=False, size=(345, 30), size_hint=(None, None))
         file_browser.add_widget(file_browser_text)
@@ -867,7 +870,7 @@ class MainScreen(GridLayout):
             #     else:
             #         break
             # map_name_clean = map_name_clean[::-1]
-            map_name = self.backend.working_file.replace("\\","/")
+            map_name = self.backend.working_file.replace("\\", "/")
             map_name_clean = map_name.split("/")[-1][0:-5]
             title_string = map_name_clean + ", Last Saved: " + self.backend.last_save.strftime(
                 "%Y-%m-%d %H:%M:%S")
@@ -924,4 +927,5 @@ class MappappApp(App):
         return MainScreen()
 
 
-MappappApp().run()
+if __name__ == '__main__':
+    MappappApp().run()

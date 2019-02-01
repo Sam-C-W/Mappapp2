@@ -36,7 +36,7 @@ class Backend:
         self.last_save = ""
 
     def get_default_tileset(self):
-        config = open(f"{self.working_dir}mappapp_config",'r')
+        config = open(f"{self.working_dir}mappapp_config.text",'r')
         for line in config:
             if "Default Tileset:" in line:
                 return line.split(':')[1][0:-1]
